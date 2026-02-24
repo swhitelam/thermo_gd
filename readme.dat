@@ -1,0 +1,43 @@
+# Thermodynamic computer trained by gradient descent to classify MNIST, from the paper "Training thermodynamic computers by gradient descent", Stephen Whitelam, https://arxiv.org/abs/2509.15324
+
+Run code with "make run"
+
+Requires ImageMagick (magick) to write PNGs, and results vary run-to-run because the RNG is seeded with clock time (the thermodynamic computer is stochastic). Set samples>1 in test_computer() if you want to average multiple stochastic trajectories per digit.
+
+## Model
+A network of real-valued “spins” \(x_i\) evolves by overdamped Langevin dynamics
+\[
+\dot x_i = -\partial_i V(\mathbf{x}) + \sqrt{2 kT}\,\eta_i(t),
+\]
+with potential
+\[
+V(\mathbf{x})=\sum_i (J_2 x_i^2 + J_4 x_i^4) + \sum_i b_i x_i + \sum_{(ij)} J_{ij} x_i x_j .
+\]
+Inputs (MNIST pixels) are frozen spins. Hidden and output spins evolve. Couplings \(J_{ij}\) are symmetric.
+
+## Inputs
+- `mnist_test.dat`  
+  Format: one digit per line: `<label> <784 pixel ints 0..255>`.
+- `parameters.dat`  
+  One floating-point value per line/entry, length = `number_of_parameters` (couplings + biases).
+
+## What the program does
+1. Reads and normalizes MNIST test digits (zero-mean/unit-variance, then equal L2 norm).
+2. Loads trained parameters from `parameters.dat`.
+3. For each test digit:
+   - clamps the 784 input spins to the digit values,
+   - runs a Langevin trajectory for `trajectory_time` with timestep `timestep`,
+   - reads out 10 output spins at final time and predicts `argmax` (computer's prediction for class)
+
+## Outputs
+Files written in the working directory:
+- `report_accuracy.dat`          top-1 accuracy vs number of test digits
+- `report_accuracy_top2.dat`     top-2 accuracy vs number of test digits
+- `report_accuracy_log.dat`      per-digit output values
+- `report_confusion.dat`         10×10 confusion matrix (rows=true, cols=pred)
+- `report_output_<id>_<label>_0.dat` time series of 10 outputs for 8 selected digits
+- `report_digit_<id>.png`        rendered MNIST digits for those 8 examples
+- `report_visualize_trajectories.html`  trajectories + digit images (one page, 8 digits)
+- `report_visualize_outputs.html`       final-time outputs as signed bars + digit images
+- `report_connection_fields.png`        input→hidden coupling “filters”
+- `report_config.txt`                  run settings
